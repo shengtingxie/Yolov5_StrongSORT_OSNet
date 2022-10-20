@@ -136,6 +136,9 @@ def run(
         )
         strongsort_list[i].model.warmup()
     outputs = [None] * nr_sources
+    outputs_remain = [None] * nr_sources
+    safe_id=[1,2,3]
+    ges_id=[]
 
     # Run tracking
     model.warmup(imgsz=(1 if pt else nr_sources, 3, *imgsz))  # warmup
@@ -211,12 +214,122 @@ def run(
                 dt[3] += t5 - t4
 
                 # draw boxes for visualization
+                add_safe_times=0
+                delete_safe_times=0
+                bboxes_palm=[]
+                bboxes_fist=[]
+                add_safe_id=False
+                delete_safe_id=False
+
+                if len(outputs[i]) > 0:
+                    for j, (output, conf) in enumerate(zip(outputs[i], confs)):
+                        bboxes = output[0:4]
+                        id = output[4]
+                        cls = output[5]
+
+                        if cls==4 and id not in ges_id:
+                            add_safe_id=True # when there is palm and don't have bbox
+                            ges_id.append(id)
+                            bboxes_palm.append(bboxes)
+                            add_safe_times+=1
+
+                        if cls==0 and 5 in outputs[i][:,5] and id not in ges_id:       
+                        #: 
+                            #when there is fist and there is one person detected
+                            delete_safe_id=True
+                            ges_id.append(id)
+
+                            bboxes_fist.append(bboxes)
+                            delete_safe_times+=1
+                            
+
+
+                        # if cls==0 and 5 in outputs[i][:,5]:  #when there is fist and there is one person detected
+                        #     safe_id.remove(1)
+                        #     safe_id.remove(2)
+                        #     safe_id.remove(3)
+                if add_safe_id:
+                    for ax in range(add_safe_times):
+                        distance_centre=100000000
+                        bboxes_palm_reference=bboxes_palm[ax]
+                        bboxes_palm_x_mid=0.5*bboxes_palm_reference[0]+0.5*bboxes_palm_reference[2]
+                        bboxes_palm_y_mid=0.5*bboxes_palm_reference[1]+0.5*bboxes_palm_reference[3]
+                        id_most_close=[0]
+                        for j, (output, conf) in enumerate(zip(outputs[i], confs)):
+                            bboxes = output[0:4]
+                            id = output[4]
+                            cls = output[5]
+                            
+
+                            if cls==5 and id not in safe_id:
+                                
+                                person_x_mid=0.5*output[0]+0.5*output[2]
+                                person_y_mid=0.5*output[1]+0.5*output[3]
+                                new_distance= (person_x_mid-bboxes_palm_x_mid)*(person_x_mid-bboxes_palm_x_mid)+(person_y_mid-bboxes_palm_y_mid)*(person_x_mid-bboxes_palm_x_mid)# when there is palm and don't ahve bbox
+                                print(new_distance)
+                                if (new_distance<distance_centre):
+                                    distance_centre=new_distance
+                                    id_most_close[0]=id.item()
+                                    print(id.item)
+                        if ((id_most_close[0])>0):
+                            safe_id.append(id_most_close[0])
+                            print(safe_id)
+
+
+                if delete_safe_id:
+                    
+                    for ax in range(delete_safe_times):
+                        distance_centre=100000000
+                        bboxes_fist_reference=bboxes_fist[ax]
+                        bboxes_fist_x_mid=0.5*bboxes_fist_reference[0]+0.5*bboxes_fist_reference[2]
+                        bboxes_fist_y_mid=0.5*bboxes_fist_reference[1]+0.5*bboxes_fist_reference[3]
+                        id_most_close=[0]                        
+                        for j, (output, conf) in enumerate(zip(outputs[i], confs)):
+                            bboxes = output[0:4]
+                            id = output[4]
+                            cls = output[5]
+                            
+                            if cls==5 and id in safe_id:
+                                person_x_mid=0.5*output[0]+0.5*output[2]
+                                person_y_mid=0.5*output[1]+0.5*output[3]
+                                new_distance= (person_x_mid-bboxes_fist_x_mid)*(person_x_mid-bboxes_fist_x_mid)+(person_y_mid-bboxes_fist_y_mid)*(person_x_mid-bboxes_fist_x_mid)# when there is palm and don't ahve bbox
+                                print(new_distance)
+                                if (new_distance<distance_centre):
+                                    distance_centre=new_distance
+                                    id_most_close[0]=id.item()
+                                    print(id.item)
+                        if ((id_most_close[0])>0):
+                            safe_id.remove(id_most_close[0])
+                            print(safe_id)
+
+
+
+
+                index_remain=[]
+                if len(outputs[i]) > 0:
+                    for ix in range(outputs[i].shape[0]):
+                        if outputs[i][ix][5]!=5 or outputs[i][ix][4] in safe_id:
+                            index_remain.append(ix)
+                outputs_remain[i]=np.take(outputs[i], index_remain, axis=0)
+
+                outputs[i]=outputs_remain[i]
+                
+                
+
+
+                    
+
+
+                
+
                 if len(outputs[i]) > 0:
                     for j, (output, conf) in enumerate(zip(outputs[i], confs)):
     
                         bboxes = output[0:4]
                         id = output[4]
                         cls = output[5]
+
+
 
                         if save_txt:
                             # to MOT format
@@ -232,6 +345,10 @@ def run(
                         if save_vid or save_crop or show_vid:  # Add bbox to image
                             c = int(cls)  # integer class
                             id = int(id)  # integer id
+                            
+                            
+                            # bboxes.append(np.array([300,300,400,400]))
+                            # bboxes.append(np.array([400,400,500,500]))
                             label = None if hide_labels else (f'{id} {names[c]}' if hide_conf else \
                                 (f'{id} {conf:.2f}' if hide_class else f'{id} {names[c]} {conf:.2f}'))
                             annotator.box_label(bboxes, label, color=colors(c, True))
