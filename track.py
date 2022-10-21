@@ -137,7 +137,7 @@ def run(
         strongsort_list[i].model.warmup()
     outputs = [None] * nr_sources
     outputs_remain = [None] * nr_sources
-    safe_id=[1,2,3]
+    safe_id=[]
     ges_id=[]
 
     # Run tracking
@@ -213,7 +213,7 @@ def run(
                 t5 = time_sync()
                 dt[3] += t5 - t4
 
-                # draw boxes for visualization
+                #draw boxes for visualization
                 add_safe_times=0
                 delete_safe_times=0
                 bboxes_palm=[]
@@ -221,23 +221,34 @@ def run(
                 add_safe_id=False
                 delete_safe_id=False
 
+
+
+
+
                 if len(outputs[i]) > 0:
                     for j, (output, conf) in enumerate(zip(outputs[i], confs)):
                         bboxes = output[0:4]
                         id = output[4]
                         cls = output[5]
 
-                        if cls==4 and id not in ges_id:
+                        if cls==4 and (id*100000+cls) not in ges_id:
                             add_safe_id=True # when there is palm and don't have bbox
-                            ges_id.append(id)
+                            ges_id.append(id*100000+cls)
                             bboxes_palm.append(bboxes)
+
+                            if (id*100000) in ges_id:
+                                ges_id.remove(id*100000)
+
                             add_safe_times+=1
 
-                        if cls==0 and 5 in outputs[i][:,5] and id not in ges_id:       
+                        if cls==0 and 5 in outputs[i][:,5] and (id*100000+cls) not in ges_id:       
                         #: 
                             #when there is fist and there is one person detected
                             delete_safe_id=True
-                            ges_id.append(id)
+                            ges_id.append(id*100000+cls)
+
+                            if (id*100000+4) in ges_id:
+                                ges_id.remove(id*100000+4)
 
                             bboxes_fist.append(bboxes)
                             delete_safe_times+=1
@@ -270,7 +281,7 @@ def run(
                                 if (new_distance<distance_centre):
                                     distance_centre=new_distance
                                     id_most_close[0]=id.item()
-                                    print(id.item)
+                                    print(id.item())
                         if ((id_most_close[0])>0):
                             safe_id.append(id_most_close[0])
                             print(safe_id)
@@ -403,7 +414,7 @@ def parse_opt():
     parser.add_argument('--config-strongsort', type=str, default='strong_sort/configs/strong_sort.yaml')
     parser.add_argument('--source', type=str, default='0', help='file/dir/URL/glob, 0 for webcam')  
     parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640], help='inference size h,w')
-    parser.add_argument('--conf-thres', type=float, default=0.5, help='confidence threshold')
+    parser.add_argument('--conf-thres', type=float, default=0.3, help='confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='NMS IoU threshold')
     parser.add_argument('--max-det', type=int, default=1000, help='maximum detections per image')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
