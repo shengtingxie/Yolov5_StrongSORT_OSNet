@@ -239,7 +239,7 @@ def run(
                             if (id*100000) in ges_id:
                                 ges_id.remove(id*100000)
 
-                            add_safe_times+=1
+                            add_safe_times=1
 
                         if cls==0 and 5 in outputs[i][:,5] and (id*100000+cls) not in ges_id:       
                         #: 
@@ -251,7 +251,7 @@ def run(
                                 ges_id.remove(id*100000+4)
 
                             bboxes_fist.append(bboxes)
-                            delete_safe_times+=1
+                            delete_safe_times=1
                             
 
 
@@ -261,11 +261,11 @@ def run(
                         #     safe_id.remove(3)
                 if add_safe_id:
                     for ax in range(add_safe_times):
-                        distance_centre=100000000
-                        bboxes_palm_reference=bboxes_palm[ax]
-                        bboxes_palm_x_mid=0.5*bboxes_palm_reference[0]+0.5*bboxes_palm_reference[2]
-                        bboxes_palm_y_mid=0.5*bboxes_palm_reference[1]+0.5*bboxes_palm_reference[3]
-                        id_most_close=[0]
+                        # distance_centre=100000000
+                        # bboxes_palm_reference=bboxes_palm[ax]
+                        # bboxes_palm_x_mid=0.5*bboxes_palm_reference[0]+0.5*bboxes_palm_reference[2]
+                        # bboxes_palm_y_mid=0.5*bboxes_palm_reference[1]+0.5*bboxes_palm_reference[3]
+                        # id_most_close=[0]
                         for j, (output, conf) in enumerate(zip(outputs[i], confs)):
                             bboxes = output[0:4]
                             id = output[4]
@@ -273,45 +273,51 @@ def run(
                             
 
                             if cls==5 and id not in safe_id:
+                                safe_id.append(id)
+
                                 
-                                person_x_mid=0.5*output[0]+0.5*output[2]
-                                person_y_mid=0.5*output[1]+0.5*output[3]
-                                new_distance= (person_x_mid-bboxes_palm_x_mid)*(person_x_mid-bboxes_palm_x_mid)+(person_y_mid-bboxes_palm_y_mid)*(person_x_mid-bboxes_palm_x_mid)# when there is palm and don't ahve bbox
-                                print(new_distance)
-                                if (new_distance<distance_centre):
-                                    distance_centre=new_distance
-                                    id_most_close[0]=id.item()
-                                    print(id.item())
-                        if ((id_most_close[0])>0):
-                            safe_id.append(id_most_close[0])
-                            print(safe_id)
+                        #         person_x_mid=0.5*output[0]+0.5*output[2]
+                        #         person_y_mid=0.5*output[1]+0.5*output[3]
+                        #         new_distance= (person_x_mid-bboxes_palm_x_mid)*(person_x_mid-bboxes_palm_x_mid)+(person_y_mid-bboxes_palm_y_mid)*(person_x_mid-bboxes_palm_x_mid)# when there is palm and don't ahve bbox
+                        #         print(new_distance)
+                        #         if (new_distance<distance_centre):
+                        #             distance_centre=new_distance
+                        #             id_most_close[0]=id.item()
+                        #             print(id.item())
+                        # if ((id_most_close[0])>0):
+                        #     safe_id.append(id_most_close[0])
+                        #     print(safe_id)
 
 
                 if delete_safe_id:
                     
                     for ax in range(delete_safe_times):
-                        distance_centre=100000000
-                        bboxes_fist_reference=bboxes_fist[ax]
-                        bboxes_fist_x_mid=0.5*bboxes_fist_reference[0]+0.5*bboxes_fist_reference[2]
-                        bboxes_fist_y_mid=0.5*bboxes_fist_reference[1]+0.5*bboxes_fist_reference[3]
-                        id_most_close=[0]                        
+                        # distance_centre=100000000
+                        # bboxes_fist_reference=bboxes_fist[ax]
+                        # bboxes_fist_x_mid=0.5*bboxes_fist_reference[0]+0.5*bboxes_fist_reference[2]
+                        # bboxes_fist_y_mid=0.5*bboxes_fist_reference[1]+0.5*bboxes_fist_reference[3]
+                        # id_most_close=[0]                        
                         for j, (output, conf) in enumerate(zip(outputs[i], confs)):
                             bboxes = output[0:4]
+                            
                             id = output[4]
+
                             cls = output[5]
                             
                             if cls==5 and id in safe_id:
-                                person_x_mid=0.5*output[0]+0.5*output[2]
-                                person_y_mid=0.5*output[1]+0.5*output[3]
-                                new_distance= (person_x_mid-bboxes_fist_x_mid)*(person_x_mid-bboxes_fist_x_mid)+(person_y_mid-bboxes_fist_y_mid)*(person_x_mid-bboxes_fist_x_mid)# when there is palm and don't ahve bbox
-                                print(new_distance)
-                                if (new_distance<distance_centre):
-                                    distance_centre=new_distance
-                                    id_most_close[0]=id.item()
-                                    print(id.item)
-                        if ((id_most_close[0])>0):
-                            safe_id.remove(id_most_close[0])
-                            print(safe_id)
+                                safe_id.remove(id)
+
+                        #         person_x_mid=0.5*output[0]+0.5*output[2]
+                        #         person_y_mid=0.5*output[1]+0.5*output[3]
+                        #         new_distance= (person_x_mid-bboxes_fist_x_mid)*(person_x_mid-bboxes_fist_x_mid)+(person_y_mid-bboxes_fist_y_mid)*(person_x_mid-bboxes_fist_x_mid)# when there is palm and don't ahve bbox
+                        #         print(new_distance)
+                        #         if (new_distance<distance_centre):
+                        #             distance_centre=new_distance
+                        #             id_most_close[0]=id.item()
+                        #             print(id.item)
+                        # if ((id_most_close[0])>0):
+                        #     safe_id.remove(id_most_close[0])
+                        #     print(safe_id)
 
 
 
